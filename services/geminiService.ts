@@ -1,4 +1,4 @@
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 import { Transaction } from '../types';
 
 const fileToGenerativePart = async (file: File) => {
@@ -12,14 +12,18 @@ const fileToGenerativePart = async (file: File) => {
   };
 };
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || (typeof process !== 'undefined' ? process.env.GEMINI_API_KEY : '');
+const genAI = new GoogleGenerativeAI(API_KEY as string);
 
 export const analyzeStatement = async (pdfFile: File): Promise<Transaction[]> => {
-  if (!process.env.API_KEY) {
-    throw new Error("API_KEY environment variable not set");
+  if (!API_KEY) {
+    throw new Error("GEMINI_API_KEY not found. Please set VITE_GEMINI_API_KEY in your environment.");
   }
 
-  const model = "gemini-2.5-pro";
+  const modelName = "gemini-1.5-flash";
+  const model = genAI.getGenerativeModel({
+    model: modelName,
+  });
 
   const filePart = await fileToGenerativePart(pdfFile);
 
@@ -54,37 +58,52 @@ export const analyzeStatement = async (pdfFile: File): Promise<Transaction[]> =>
   Return the extracted data as a JSON array, conforming to the provided schema. Your output must be a clean, accurate, and validated representation of the financial data, with each transaction correctly categorized.`;
   
   const responseSchema = {
-    type: Type.ARRAY,
+    type: SchemaType.ARRAY,
     items: {
-      type: Type.OBJECT,
+      type: SchemaType.OBJECT,
       properties: {
-        date: { type: Type.STRING, description: "Transaction date in YYYY-MM-DD format." },
-        description: { type: Type.STRING, description: "Cleaned transaction description." },
-        debit: { type: Type.NUMBER, nullable: true, description: "Debit amount as a positive number or null." },
-        credit: { type: Type.NUMBER, nullable: true, description: "Credit amount as a positive number or null." },
-        balance: { type: Type.NUMBER, nullable: true, description: "Running balance after transaction or null." },
-        category: { type: Type.STRING, description: "The assigned category for the transaction based on the rules." },
+        date: { type: SchemaType.STRING, description: "Transaction date in YYYY-MM-DD format." },
+        description: { type: SchemaType.STRING, description: "Cleaned transaction description." },
+        debit: { type: SchemaType.NUMBER, nullable: true, description: "Debit amount as a positive number or null." },
+        credit: { type: SchemaType.NUMBER, nullable: true, description: "Credit amount as a positive number or null." },
+        balance: { type: SchemaType.NUMBER, nullable: true, description: "Running balance after transaction or null." },
+        category: { type: SchemaType.STRING, description: "The assigned category for the transaction based on the rules." },
       },
       required: ["date", "description", "debit", "credit", "balance", "category"],
     },
   };
   
   try {
-    const result = await ai.models.generateContent({
-      model,
-      contents: { parts: [filePart, { text: prompt }] },
-      config: {
+    const result = await model.generateContent({
+      contents: [{ role: "user", parts: [filePart, { text: prompt }] }],
+      generationConfig: {
         responseMimeType: "application/json",
         responseSchema: responseSchema,
       },
     });
 
-    const jsonString = result.text.trim();
+    const response = await result.response;
+    const jsonString = response.text().trim();
     const parsedData = JSON.parse(jsonString);
-    return parsedData as Transaction[];
 
-  } catch (error) {
+    // Assign unique IDs to transactions
+    return (parsedData as Transaction[]).map(tx => ({
+        ...tx,
+        id: crypto.randomUUID()
+    }));
+
+  } catch (error: any) {
     console.error("Error analyzing statement with Gemini API:", error);
-    throw new Error("Failed to process the bank statement. The AI model could not extract the data.");
+    let errorMessage = "Failed to process the bank statement.";
+
+    if (error.message?.includes("API key")) {
+        errorMessage = "Invalid Gemini API key. Please check your .env.local file.";
+    } else if (error.message?.includes("model")) {
+        errorMessage = `The AI model (${modelName}) is currently unavailable.`;
+    } else if (error.message?.includes("quota")) {
+        errorMessage = "API quota exceeded. Please try again later.";
+    }
+
+    throw new Error(errorMessage);
   }
 };

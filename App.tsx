@@ -99,6 +99,14 @@ const App: React.FC = () => {
         setFilters(INITIAL_FILTERS);
     };
 
+    const handleClearTransactions = () => {
+        if (window.confirm("Are you sure you want to clear all extracted transactions?")) {
+            setTransactions([]);
+            setFileName(null);
+            setError(null);
+        }
+    };
+
     const handleAddNewCategory = (newCategory: string) => {
         if (newCategory && !allCategories.includes(newCategory)) {
             const updatedCategories = [...allCategories, newCategory].sort();
@@ -113,14 +121,10 @@ const App: React.FC = () => {
         }
     };
 
-    const handleCategoryChange = (transactionIndex: number, newCategory: string) => {
-        setTransactions(prev => {
-            const newTransactions = [...prev];
-            if (newTransactions[transactionIndex]) {
-                 newTransactions[transactionIndex].category = newCategory;
-            }
-            return newTransactions;
-        });
+    const handleCategoryChange = (id: string, newCategory: string) => {
+        setTransactions(prev =>
+            prev.map(tx => tx.id === id ? { ...tx, category: newCategory } : tx)
+        );
     };
 
     const filteredTransactions = useMemo(() => {
@@ -207,13 +211,21 @@ const App: React.FC = () => {
                 <div className="space-y-6">
                     <div className="flex flex-col sm:flex-row justify-between items-center">
                         <h2 className="text-2xl font-bold text-slate-800 mb-2 sm:mb-0">Extracted Transactions</h2>
-                        <button
-                            onClick={handleExportToExcel}
-                            disabled={sortedTransactions.length === 0}
-                            className="flex items-center justify-center px-4 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-75 transition-all duration-300 disabled:bg-slate-400 disabled:cursor-not-allowed"
-                        >
-                           <ExcelIcon /> Export to Excel
-                        </button>
+                        <div className="flex space-x-3">
+                            <button
+                                onClick={handleClearTransactions}
+                                className="flex items-center justify-center px-4 py-2 bg-slate-200 text-slate-700 font-semibold rounded-lg shadow-sm hover:bg-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-400 transition-all duration-300"
+                            >
+                                Clear All
+                            </button>
+                            <button
+                                onClick={handleExportToExcel}
+                                disabled={sortedTransactions.length === 0}
+                                className="flex items-center justify-center px-4 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-75 transition-all duration-300 disabled:bg-slate-400 disabled:cursor-not-allowed"
+                            >
+                            <ExcelIcon /> Export to Excel
+                            </button>
+                        </div>
                     </div>
                     <FilterControls 
                         filters={filters} 

@@ -6,7 +6,7 @@ interface DataTableProps {
     sortConfig: SortConfig | null;
     requestSort: (key: keyof Transaction) => void;
     allCategories: string[];
-    onCategoryChange: (transactionIndex: number, newCategory: string) => void;
+    onCategoryChange: (id: string, newCategory: string) => void;
     onAddNewCategory: (newCategory: string) => void;
 }
 
@@ -63,9 +63,9 @@ const CategoryBadge: React.FC<{ category: string }> = ({ category }) => {
 };
 
 const DataTable: React.FC<DataTableProps> = ({ transactions, sortConfig, requestSort, allCategories, onCategoryChange, onAddNewCategory }) => {
-    const [editingIndex, setEditingIndex] = useState<number | null>(null);
+    const [editingId, setEditingId] = useState<string | null>(null);
 
-    const handleCategorySelectChange = (e: React.ChangeEvent<HTMLSelectElement>, index: number) => {
+    const handleCategorySelectChange = (e: React.ChangeEvent<HTMLSelectElement>, id: string) => {
         const newCategory = e.target.value;
 
         if (newCategory === '--add-new--') {
@@ -73,12 +73,12 @@ const DataTable: React.FC<DataTableProps> = ({ transactions, sortConfig, request
             if (customCategory && customCategory.trim() !== "") {
                 const trimmedCategory = customCategory.trim();
                 onAddNewCategory(trimmedCategory);
-                onCategoryChange(index, trimmedCategory);
+                onCategoryChange(id, trimmedCategory);
             }
         } else {
-            onCategoryChange(index, newCategory);
+            onCategoryChange(id, newCategory);
         }
-        setEditingIndex(null); // Exit editing mode after change
+        setEditingId(null); // Exit editing mode after change
     };
 
 
@@ -109,11 +109,11 @@ const DataTable: React.FC<DataTableProps> = ({ transactions, sortConfig, request
                                 <td className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">{tx.date}</td>
                                 <td className="px-6 py-4">{tx.description}</td>
                                 <td className="px-6 py-4">
-                                    {editingIndex === index ? (
+                                    {editingId === tx.id ? (
                                         <select
                                             value={tx.category}
-                                            onChange={(e) => handleCategorySelectChange(e, index)}
-                                            onBlur={() => setEditingIndex(null)}
+                                            onChange={(e) => handleCategorySelectChange(e, tx.id)}
+                                            onBlur={() => setEditingId(null)}
                                             autoFocus
                                             className="block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                                         >
@@ -124,7 +124,7 @@ const DataTable: React.FC<DataTableProps> = ({ transactions, sortConfig, request
                                             <option value="--add-new--">＋ Add New...</option>
                                         </select>
                                     ) : (
-                                        <div onClick={() => setEditingIndex(index)} className="cursor-pointer">
+                                        <div onClick={() => setEditingId(tx.id)} className="cursor-pointer">
                                             <CategoryBadge category={tx.category} />
                                         </div>
                                     )}
