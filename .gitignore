@@ -1,0 +1,28 @@
+# See https://github.com/github/gitignore/blob/main/Node.gitignore
+node_modules/
+/*.env*
+/*.local*
+
+# Binary files
+/Docs/*.pdf
+
+# Coverage directory used by tools like jest or v8
+coverage/
+
+# Logs
+logs/
+*.log
+
+# Runtime output
+/tmp/
+
+# Environment variables
+.env/.env*. production/.env*. staging/.env*
+
+# Build artifacts
+/dist/
+/dist-ssr/
+/.coverage
+/vitest.config.*/
+/nyc-output/
+/*.tgz

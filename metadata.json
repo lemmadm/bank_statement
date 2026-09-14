@@ -1,0 +1,5 @@
+{
+  "name": "bank-statement-converter",
+  "description": "An intelligent tool that uses AI to extract, analyze, and organize data from bank statement PDFs into a clean, exportable Excel format. Users provide their own Google Gemini API key.",
+  "requestFramePermissions": []
+}
